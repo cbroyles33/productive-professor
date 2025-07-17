@@ -1,4 +1,4 @@
-// server.js - Node.js Express server for Productive Professor
+// server.js - Enhanced Productive Professor with Classroom Management
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
@@ -12,8 +12,12 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static('public'));
 
-// Store conversations in memory (use a database for production)
+// In-memory storage (use database for production)
+const teachers = new Map();
+const classes = new Map();
+const students = new Map();
 const conversations = new Map();
+const prompts = new Map();
 
 const SYSTEM_PROMPT = `You are an intellectual thinking partner designed to accelerate student learning through collaborative challenge. Your role is to deepen and strengthen student reasoning by pushing them to develop more sophisticated arguments while providing genuine encouragement and recognition.
 
@@ -74,10 +78,313 @@ You're the inspiring professor who makes students think harder while making them
 
 Begin every interaction by identifying what's interesting or strong about their position, then guide them toward developing it more rigorously while recognizing their analytical progress along the way.`;
 
-// Chat endpoint
+// Initialize subject-specific prompts
+function initializePrompts() {
+    const subjectPrompts = {
+        english: [
+            {
+                title: "Thesis Statement Analysis",
+                prompt: "Share your thesis statement or main argument, and I'll help you strengthen it by examining its clarity, specificity, and defendability."
+            },
+            {
+                title: "Evidence Evaluation",
+                prompt: "Present a piece of evidence you're using to support an argument, and I'll challenge you to examine its relevance, credibility, and strength."
+            },
+            {
+                title: "Character Analysis",
+                prompt: "Describe your interpretation of a literary character's motivations, and I'll push you to explore deeper psychological and contextual factors."
+            },
+            {
+                title: "Counterargument Preparation",
+                prompt: "State your position on a topic, and I'll help you anticipate and address the strongest opposing viewpoints."
+            }
+        ],
+        history: [
+            {
+                title: "Historical Causation",
+                prompt: "Explain what you think caused a historical event, and I'll challenge you to examine multiple factors and their interconnections."
+            },
+            {
+                title: "Primary Source Analysis",
+                prompt: "Share a historical document or quote you're analyzing, and I'll help you examine its context, bias, and significance."
+            },
+            {
+                title: "Historical Comparison",
+                prompt: "Compare two historical periods or events, and I'll push you to identify deeper patterns and differences."
+            },
+            {
+                title: "Historical Perspective",
+                prompt: "Explain a historical figure's decision, and I'll challenge you to consider multiple perspectives and constraints they faced."
+            }
+        ],
+        science: [
+            {
+                title: "Hypothesis Development",
+                prompt: "Present your hypothesis for a scientific question, and I'll help you refine it and consider alternative explanations."
+            },
+            {
+                title: "Experimental Design",
+                prompt: "Describe your experimental approach, and I'll challenge you to identify variables, controls, and potential limitations."
+            },
+            {
+                title: "Data Interpretation",
+                prompt: "Share your scientific data or results, and I'll push you to consider multiple interpretations and implications."
+            },
+            {
+                title: "Scientific Reasoning",
+                prompt: "Explain a scientific concept or process, and I'll help you examine the underlying principles and connections."
+            }
+        ],
+        math: [
+            {
+                title: "Problem-Solving Strategy",
+                prompt: "Explain your approach to solving a math problem, and I'll challenge you to consider alternative methods and verify your reasoning."
+            },
+            {
+                title: "Proof Development",
+                prompt: "Share your mathematical proof or reasoning, and I'll help you examine its logic and identify any gaps."
+            },
+            {
+                title: "Mathematical Modeling",
+                prompt: "Describe how you would model a real-world situation mathematically, and I'll push you to consider assumptions and limitations."
+            },
+            {
+                title: "Concept Connections",
+                prompt: "Explain how mathematical concepts relate to each other, and I'll help you explore deeper connections and applications."
+            }
+        ],
+        general: [
+            {
+                title: "Critical Analysis",
+                prompt: "Present any argument or position you're developing, and I'll help you strengthen it through rigorous questioning and analysis."
+            },
+            {
+                title: "Problem Solving",
+                prompt: "Describe a problem you're trying to solve, and I'll challenge you to examine it from multiple angles and develop stronger solutions."
+            },
+            {
+                title: "Decision Making",
+                prompt: "Explain a decision you need to make, and I'll help you weigh the factors and consider unexamined implications."
+            },
+            {
+                title: "Creative Thinking",
+                prompt: "Share an idea you're developing, and I'll push you to explore its potential, limitations, and innovative applications."
+            }
+        ]
+    };
+
+    for (const [subject, promptList] of Object.entries(subjectPrompts)) {
+        prompts.set(subject, promptList);
+    }
+}
+
+initializePrompts();
+
+// Generate unique codes
+function generateCode() {
+    return Math.random().toString(36).substr(2, 6).toUpperCase();
+}
+
+// Teacher registration
+app.post('/api/teacher/register', (req, res) => {
+    try {
+        const { name, email, password, school } = req.body;
+        
+        if (!name || !email || !password) {
+            return res.status(400).json({ error: 'Name, email, and password are required' });
+        }
+
+        // Check if teacher already exists
+        for (const teacher of teachers.values()) {
+            if (teacher.email === email) {
+                return res.status(400).json({ error: 'Email already registered' });
+            }
+        }
+
+        const teacherId = 'teacher_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+        const teacher = {
+            id: teacherId,
+            name,
+            email,
+            password, // In production, hash this!
+            school: school || '',
+            createdAt: new Date().toISOString(),
+            classes: []
+        };
+
+        teachers.set(teacherId, teacher);
+        
+        res.json({ 
+            success: true, 
+            teacherId,
+            teacher: {
+                id: teacher.id,
+                name: teacher.name,
+                email: teacher.email,
+                school: teacher.school
+            }
+        });
+    } catch (error) {
+        console.error('Teacher registration error:', error);
+        res.status(500).json({ error: 'Registration failed' });
+    }
+});
+
+// Teacher login
+app.post('/api/teacher/login', (req, res) => {
+    try {
+        const { email, password } = req.body;
+
+        for (const teacher of teachers.values()) {
+            if (teacher.email === email && teacher.password === password) {
+                return res.json({
+                    success: true,
+                    teacher: {
+                        id: teacher.id,
+                        name: teacher.name,
+                        email: teacher.email,
+                        school: teacher.school
+                    }
+                });
+            }
+        }
+
+        res.status(401).json({ error: 'Invalid email or password' });
+    } catch (error) {
+        console.error('Teacher login error:', error);
+        res.status(500).json({ error: 'Login failed' });
+    }
+});
+
+// Create class
+app.post('/api/teacher/create-class', (req, res) => {
+    try {
+        const { teacherId, className, subject, description } = req.body;
+
+        if (!teachers.has(teacherId)) {
+            return res.status(404).json({ error: 'Teacher not found' });
+        }
+
+        const classId = 'class_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+        const joinCode = generateCode();
+        
+        const classData = {
+            id: classId,
+            teacherId,
+            name: className,
+            subject: subject || 'general',
+            description: description || '',
+            joinCode,
+            createdAt: new Date().toISOString(),
+            students: [],
+            conversations: []
+        };
+
+        classes.set(classId, classData);
+        
+        // Add class to teacher's class list
+        const teacher = teachers.get(teacherId);
+        teacher.classes.push(classId);
+
+        res.json({ success: true, class: classData });
+    } catch (error) {
+        console.error('Create class error:', error);
+        res.status(500).json({ error: 'Failed to create class' });
+    }
+});
+
+// Get teacher's classes
+app.get('/api/teacher/:teacherId/classes', (req, res) => {
+    try {
+        const { teacherId } = req.params;
+        
+        if (!teachers.has(teacherId)) {
+            return res.status(404).json({ error: 'Teacher not found' });
+        }
+
+        const teacher = teachers.get(teacherId);
+        const teacherClasses = teacher.classes.map(classId => {
+            const classData = classes.get(classId);
+            return {
+                ...classData,
+                studentCount: classData.students.length,
+                recentActivity: classData.conversations.length
+            };
+        });
+
+        res.json({ classes: teacherClasses });
+    } catch (error) {
+        console.error('Get classes error:', error);
+        res.status(500).json({ error: 'Failed to get classes' });
+    }
+});
+
+// Student join class
+app.post('/api/student/join', (req, res) => {
+    try {
+        const { joinCode, studentName } = req.body;
+
+        if (!joinCode || !studentName) {
+            return res.status(400).json({ error: 'Join code and student name are required' });
+        }
+
+        // Find class by join code
+        let targetClass = null;
+        for (const classData of classes.values()) {
+            if (classData.joinCode === joinCode.toUpperCase()) {
+                targetClass = classData;
+                break;
+            }
+        }
+
+        if (!targetClass) {
+            return res.status(404).json({ error: 'Invalid join code' });
+        }
+
+        const studentId = 'student_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+        const student = {
+            id: studentId,
+            name: studentName,
+            classId: targetClass.id,
+            joinedAt: new Date().toISOString(),
+            conversationCount: 0
+        };
+
+        students.set(studentId, student);
+        targetClass.students.push(studentId);
+
+        res.json({ 
+            success: true, 
+            studentId,
+            class: {
+                id: targetClass.id,
+                name: targetClass.name,
+                subject: targetClass.subject,
+                description: targetClass.description
+            }
+        });
+    } catch (error) {
+        console.error('Student join error:', error);
+        res.status(500).json({ error: 'Failed to join class' });
+    }
+});
+
+// Get prompts for subject
+app.get('/api/prompts/:subject', (req, res) => {
+    try {
+        const { subject } = req.params;
+        const subjectPrompts = prompts.get(subject) || prompts.get('general');
+        res.json({ prompts: subjectPrompts });
+    } catch (error) {
+        console.error('Get prompts error:', error);
+        res.status(500).json({ error: 'Failed to get prompts' });
+    }
+});
+
+// Enhanced chat endpoint with student tracking
 app.post('/api/chat', async (req, res) => {
     try {
-        const { message, sessionId } = req.body;
+        const { message, sessionId, studentId, promptTitle } = req.body;
         
         if (!message || !sessionId) {
             return res.status(400).json({ error: 'Message and sessionId are required' });
@@ -89,6 +396,12 @@ app.post('/api/chat', async (req, res) => {
         // Add user message
         conversation.push({ role: 'user', content: message });
         
+        // Prepare system prompt
+        let systemPrompt = SYSTEM_PROMPT;
+        if (promptTitle) {
+            systemPrompt += `\n\nCurrent Assignment Context: The student is working on "${promptTitle}". Frame your responses to help them specifically with this type of analytical thinking.`;
+        }
+
         // Call Claude API
         const response = await fetch('https://api.anthropic.com/v1/messages', {
             method: 'POST',
@@ -100,7 +413,7 @@ app.post('/api/chat', async (req, res) => {
             body: JSON.stringify({
                 model: 'claude-3-5-sonnet-20241022',
                 max_tokens: 1000,
-                system: SYSTEM_PROMPT,
+                system: systemPrompt,
                 messages: conversation
             })
         });
@@ -118,12 +431,75 @@ app.post('/api/chat', async (req, res) => {
         
         // Store updated conversation
         conversations.set(sessionId, conversation);
+
+        // Track student activity
+        if (studentId && students.has(studentId)) {
+            const student = students.get(studentId);
+            student.conversationCount++;
+            student.lastActivity = new Date().toISOString();
+
+            // Add conversation to class tracking
+            const classData = classes.get(student.classId);
+            if (classData) {
+                classData.conversations.push({
+                    sessionId,
+                    studentId,
+                    timestamp: new Date().toISOString(),
+                    promptTitle: promptTitle || 'General Discussion',
+                    messageCount: conversation.length
+                });
+            }
+        }
         
         res.json({ response: assistantMessage });
         
     } catch (error) {
         console.error('Chat error:', error);
         res.status(500).json({ error: 'Failed to process message' });
+    }
+});
+
+// Get class analytics
+app.get('/api/teacher/class/:classId/analytics', (req, res) => {
+    try {
+        const { classId } = req.params;
+        
+        if (!classes.has(classId)) {
+            return res.status(404).json({ error: 'Class not found' });
+        }
+
+        const classData = classes.get(classId);
+        const classStudents = classData.students.map(studentId => students.get(studentId));
+        
+        const analytics = {
+            totalStudents: classStudents.length,
+            totalConversations: classData.conversations.length,
+            activeStudents: classStudents.filter(s => s.conversationCount > 0).length,
+            recentActivity: classData.conversations.filter(c => {
+                const conversationDate = new Date(c.timestamp);
+                const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+                return conversationDate > weekAgo;
+            }).length,
+            students: classStudents.map(student => ({
+                name: student.name,
+                conversationCount: student.conversationCount,
+                lastActivity: student.lastActivity || student.joinedAt
+            })),
+            recentConversations: classData.conversations.slice(-10).map(conv => {
+                const student = students.get(conv.studentId);
+                return {
+                    studentName: student?.name || 'Unknown',
+                    promptTitle: conv.promptTitle,
+                    timestamp: conv.timestamp,
+                    messageCount: conv.messageCount
+                };
+            })
+        };
+
+        res.json(analytics);
+    } catch (error) {
+        console.error('Analytics error:', error);
+        res.status(500).json({ error: 'Failed to get analytics' });
     }
 });
 
@@ -141,23 +517,31 @@ app.get('/api/health', (req, res) => {
     res.json({ status: 'healthy' });
 });
 
-// Serve the frontend
+// Serve different pages based on path
+app.get('/teacher', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'teacher.html'));
+});
+
+app.get('/student/:code?', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'student.html'));
+});
+
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
 app.listen(PORT, () => {
-    console.log(`Productive Professor server running on port ${PORT}`);
-    console.log(`Visit http://localhost:${PORT} to use the application`);
+    console.log(`Enhanced Productive Professor server running on port ${PORT}`);
+    console.log(`Visit http://localhost:${PORT} for student interface`);
+    console.log(`Visit http://localhost:${PORT}/teacher for teacher dashboard`);
 });
 
-// Cleanup old conversations periodically (keep memory usage reasonable)
+// Cleanup old conversations periodically
 setInterval(() => {
     const now = Date.now();
     for (const [sessionId, conversation] of conversations.entries()) {
-        // Remove conversations older than 24 hours
         if (conversation.length === 0 || (now - conversation[0].timestamp > 24 * 60 * 60 * 1000)) {
             conversations.delete(sessionId);
         }
     }
-}, 60 * 60 * 1000); // Run every hour
+}, 60 * 60 * 1000);
