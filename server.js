@@ -1,4 +1,4 @@
-// server.js - Enhanced Productive Professor with Classroom Management
+// server.js - Enhanced Productive Professor (Minimal Version)
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
@@ -12,12 +12,11 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static('public'));
 
-// In-memory storage (use database for production)
+// Simple in-memory storage
+const conversations = new Map();
 const teachers = new Map();
 const classes = new Map();
 const students = new Map();
-const conversations = new Map();
-const prompts = new Map();
 
 const SYSTEM_PROMPT = `You are an intellectual thinking partner designed to accelerate student learning through collaborative challenge. Your role is to deepen and strengthen student reasoning by pushing them to develop more sophisticated arguments while providing genuine encouragement and recognition.
 
@@ -77,108 +76,6 @@ Your Persona:
 You're the inspiring professor who makes students think harder while making them feel capable of deeper analysis. You genuinely celebrate intellectual growth and insight. You challenge by building up, not tearing down. You create intellectual excitement and confidence, not frustration.
 
 Begin every interaction by identifying what's interesting or strong about their position, then guide them toward developing it more rigorously while recognizing their analytical progress along the way.`;
-
-// Initialize subject-specific prompts
-function initializePrompts() {
-    const subjectPrompts = {
-        english: [
-            {
-                title: "Thesis Statement Analysis",
-                prompt: "Share your thesis statement or main argument, and I'll help you strengthen it by examining its clarity, specificity, and defendability."
-            },
-            {
-                title: "Evidence Evaluation",
-                prompt: "Present a piece of evidence you're using to support an argument, and I'll challenge you to examine its relevance, credibility, and strength."
-            },
-            {
-                title: "Character Analysis",
-                prompt: "Describe your interpretation of a literary character's motivations, and I'll push you to explore deeper psychological and contextual factors."
-            },
-            {
-                title: "Counterargument Preparation",
-                prompt: "State your position on a topic, and I'll help you anticipate and address the strongest opposing viewpoints."
-            }
-        ],
-        history: [
-            {
-                title: "Historical Causation",
-                prompt: "Explain what you think caused a historical event, and I'll challenge you to examine multiple factors and their interconnections."
-            },
-            {
-                title: "Primary Source Analysis",
-                prompt: "Share a historical document or quote you're analyzing, and I'll help you examine its context, bias, and significance."
-            },
-            {
-                title: "Historical Comparison",
-                prompt: "Compare two historical periods or events, and I'll push you to identify deeper patterns and differences."
-            },
-            {
-                title: "Historical Perspective",
-                prompt: "Explain a historical figure's decision, and I'll challenge you to consider multiple perspectives and constraints they faced."
-            }
-        ],
-        science: [
-            {
-                title: "Hypothesis Development",
-                prompt: "Present your hypothesis for a scientific question, and I'll help you refine it and consider alternative explanations."
-            },
-            {
-                title: "Experimental Design",
-                prompt: "Describe your experimental approach, and I'll challenge you to identify variables, controls, and potential limitations."
-            },
-            {
-                title: "Data Interpretation",
-                prompt: "Share your scientific data or results, and I'll push you to consider multiple interpretations and implications."
-            },
-            {
-                title: "Scientific Reasoning",
-                prompt: "Explain a scientific concept or process, and I'll help you examine the underlying principles and connections."
-            }
-        ],
-        math: [
-            {
-                title: "Problem-Solving Strategy",
-                prompt: "Explain your approach to solving a math problem, and I'll challenge you to consider alternative methods and verify your reasoning."
-            },
-            {
-                title: "Proof Development",
-                prompt: "Share your mathematical proof or reasoning, and I'll help you examine its logic and identify any gaps."
-            },
-            {
-                title: "Mathematical Modeling",
-                prompt: "Describe how you would model a real-world situation mathematically, and I'll push you to consider assumptions and limitations."
-            },
-            {
-                title: "Concept Connections",
-                prompt: "Explain how mathematical concepts relate to each other, and I'll help you explore deeper connections and applications."
-            }
-        ],
-        general: [
-            {
-                title: "Critical Analysis",
-                prompt: "Present any argument or position you're developing, and I'll help you strengthen it through rigorous questioning and analysis."
-            },
-            {
-                title: "Problem Solving",
-                prompt: "Describe a problem you're trying to solve, and I'll challenge you to examine it from multiple angles and develop stronger solutions."
-            },
-            {
-                title: "Decision Making",
-                prompt: "Explain a decision you need to make, and I'll help you weigh the factors and consider unexamined implications."
-            },
-            {
-                title: "Creative Thinking",
-                prompt: "Share an idea you're developing, and I'll push you to explore its potential, limitations, and innovative applications."
-            }
-        ]
-    };
-
-    for (const [subject, promptList] of Object.entries(subjectPrompts)) {
-        prompts.set(subject, promptList);
-    }
-}
-
-initializePrompts();
 
 // Generate unique codes
 function generateCode() {
@@ -307,8 +204,8 @@ app.get('/api/teacher/:teacherId/classes', (req, res) => {
             const classData = classes.get(classId);
             return {
                 ...classData,
-                studentCount: classData.students.length,
-                recentActivity: classData.conversations.length
+                studentCount: classData ? classData.students.length : 0,
+                recentActivity: classData ? classData.conversations.length : 0
             };
         });
 
@@ -366,18 +263,6 @@ app.post('/api/student/join', (req, res) => {
     } catch (error) {
         console.error('Student join error:', error);
         res.status(500).json({ error: 'Failed to join class' });
-    }
-});
-
-// Get prompts for subject
-app.get('/api/prompts/:subject', (req, res) => {
-    try {
-        const { subject } = req.params;
-        const subjectPrompts = prompts.get(subject) || prompts.get('general');
-        res.json({ prompts: subjectPrompts });
-    } catch (error) {
-        console.error('Get prompts error:', error);
-        res.status(500).json({ error: 'Failed to get prompts' });
     }
 });
 
@@ -459,50 +344,6 @@ app.post('/api/chat', async (req, res) => {
     }
 });
 
-// Get class analytics
-app.get('/api/teacher/class/:classId/analytics', (req, res) => {
-    try {
-        const { classId } = req.params;
-        
-        if (!classes.has(classId)) {
-            return res.status(404).json({ error: 'Class not found' });
-        }
-
-        const classData = classes.get(classId);
-        const classStudents = classData.students.map(studentId => students.get(studentId));
-        
-        const analytics = {
-            totalStudents: classStudents.length,
-            totalConversations: classData.conversations.length,
-            activeStudents: classStudents.filter(s => s.conversationCount > 0).length,
-            recentActivity: classData.conversations.filter(c => {
-                const conversationDate = new Date(c.timestamp);
-                const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-                return conversationDate > weekAgo;
-            }).length,
-            students: classStudents.map(student => ({
-                name: student.name,
-                conversationCount: student.conversationCount,
-                lastActivity: student.lastActivity || student.joinedAt
-            })),
-            recentConversations: classData.conversations.slice(-10).map(conv => {
-                const student = students.get(conv.studentId);
-                return {
-                    studentName: student?.name || 'Unknown',
-                    promptTitle: conv.promptTitle,
-                    timestamp: conv.timestamp,
-                    messageCount: conv.messageCount
-                };
-            })
-        };
-
-        res.json(analytics);
-    } catch (error) {
-        console.error('Analytics error:', error);
-        res.status(500).json({ error: 'Failed to get analytics' });
-    }
-});
-
 // Clear conversation endpoint
 app.post('/api/clear', (req, res) => {
     const { sessionId } = req.body;
@@ -517,23 +358,13 @@ app.get('/api/health', (req, res) => {
     res.json({ status: 'healthy' });
 });
 
-// Serve different pages based on path
-app.get('/teacher', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'teacher.html'));
-});
-
-app.get('/student/:code?', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'student.html'));
-});
-
+// Serve the main chat interface
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
 app.listen(PORT, () => {
-    console.log(`Enhanced Productive Professor server running on port ${PORT}`);
-    console.log(`Visit http://localhost:${PORT} for student interface`);
-    console.log(`Visit http://localhost:${PORT}/teacher for teacher dashboard`);
+    console.log(`Productive Professor server running on port ${PORT}`);
 });
 
 // Cleanup old conversations periodically
