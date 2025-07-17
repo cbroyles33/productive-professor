@@ -362,6 +362,15 @@ app.get('/api/health', (req, res) => {
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
+// Serve teacher dashboard
+app.get('/teacher', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'teacher.html'));
+});
+
+// Serve student dashboard
+app.get('/student', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'student.html'));
+});
 
 app.listen(PORT, () => {
     console.log(`Productive Professor server running on port ${PORT}`);
