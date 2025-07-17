@@ -102,9 +102,6 @@
             max-width: 400px;
             margin: 50px auto;
             padding: 30px;
-            background: white;
-            border-radius: 15px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
         }
 
         .auth-form {
@@ -169,17 +166,6 @@
         }
 
         /* Dashboard Sections */
-        .dashboard-section {
-            margin-bottom: 30px;
-        }
-
-        .section-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-        }
-
         .section-title {
             font-size: 1.5em;
             color: #343a40;
@@ -310,52 +296,6 @@
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 20px;
-        }
-
-        .activity-list {
-            background: white;
-            border: 1px solid #dee2e6;
-            border-radius: 12px;
-            overflow: hidden;
-        }
-
-        .activity-header {
-            background: #f8f9fa;
-            padding: 15px 20px;
-            border-bottom: 1px solid #dee2e6;
-            font-weight: 600;
-        }
-
-        .activity-item {
-            padding: 15px 20px;
-            border-bottom: 1px solid #f8f9fa;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .activity-item:last-child {
-            border-bottom: none;
-        }
-
-        .activity-info {
-            flex: 1;
-        }
-
-        .activity-student {
-            font-weight: 600;
-            color: #343a40;
-        }
-
-        .activity-prompt {
-            color: #6c757d;
-            font-size: 0.9em;
-        }
-
-        .activity-time {
-            color: #8B4513;
-            font-size: 0.9em;
-            font-weight: 500;
         }
 
         .error-message {
@@ -465,7 +405,6 @@
             <button class="nav-tab active" onclick="showTab('overview')">Overview</button>
             <button class="nav-tab" onclick="showTab('classes')">My Classes</button>
             <button class="nav-tab" onclick="showTab('create')">Create Class</button>
-            <button class="nav-tab" onclick="showTab('analytics')">Analytics</button>
         </div>
 
         <div class="tab-content">
@@ -475,19 +414,11 @@
                 <div class="stats-grid" id="overviewStats">
                     <!-- Stats will be populated by JavaScript -->
                 </div>
-                
-                <div class="dashboard-section">
-                    <h3 class="section-title">Recent Activity</h3>
-                    <div class="activity-list" id="recentActivity">
-                        <div class="activity-header">Recent Student Conversations</div>
-                        <!-- Activity items will be populated by JavaScript -->
-                    </div>
-                </div>
             </div>
 
             <!-- Classes Tab -->
             <div id="classesTab" class="tab-pane">
-                <div class="section-header">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
                     <h2 class="section-title">My Classes</h2>
                     <button class="btn" onclick="showTab('create')">Create New Class</button>
                 </div>
@@ -525,20 +456,6 @@
                     </form>
                     <div id="createClassError" class="error-message hidden"></div>
                     <div id="createClassSuccess" class="success-message hidden"></div>
-                </div>
-            </div>
-
-            <!-- Analytics Tab -->
-            <div id="analyticsTab" class="tab-pane">
-                <h2 class="section-title">Analytics</h2>
-                <div class="form-group" style="max-width: 300px; margin-bottom: 30px;">
-                    <label for="analyticsClass">Select Class</label>
-                    <select id="analyticsClass" onchange="loadClassAnalytics()">
-                        <option value="">Choose a class...</option>
-                    </select>
-                </div>
-                <div id="analyticsContent">
-                    <p style="color: #6c757d; text-align: center; padding: 50px;">Select a class to view detailed analytics</p>
                 </div>
             </div>
         </div>
@@ -647,8 +564,6 @@
             // Load tab-specific data
             if (tabName === 'classes') {
                 loadClasses();
-            } else if (tabName === 'analytics') {
-                loadAnalyticsClassOptions();
             }
         }
 
@@ -675,7 +590,6 @@
         async function loadDashboardData() {
             await loadClasses();
             loadOverviewStats();
-            loadRecentActivity();
         }
 
         async function loadClasses() {
@@ -758,32 +672,6 @@
             `;
         }
 
-        function loadRecentActivity() {
-            // Simulate recent activity for now
-            const activities = [
-                { student: "Alex Johnson", prompt: "Thesis Statement Analysis", time: "2 hours ago" },
-                { student: "Sarah Chen", prompt: "Historical Causation", time: "4 hours ago" },
-                { student: "Marcus Williams", prompt: "Scientific Reasoning", time: "6 hours ago" },
-                { student: "Emma Davis", prompt: "Counterargument Preparation", time: "1 day ago" },
-                { student: "David Kim", prompt: "Evidence Evaluation", time: "1 day ago" }
-            ];
-            
-            const activityHtml = activities.map(activity => `
-                <div class="activity-item">
-                    <div class="activity-info">
-                        <div class="activity-student">${activity.student}</div>
-                        <div class="activity-prompt">${activity.prompt}</div>
-                    </div>
-                    <div class="activity-time">${activity.time}</div>
-                </div>
-            `).join('');
-            
-            document.getElementById('recentActivity').innerHTML = `
-                <div class="activity-header">Recent Student Conversations</div>
-                ${activityHtml}
-            `;
-        }
-
         async function createClass(event) {
             event.preventDefault();
             
@@ -817,82 +705,8 @@
             }
         }
 
-        function loadAnalyticsClassOptions() {
-            const select = document.getElementById('analyticsClass');
-            select.innerHTML = '<option value="">Choose a class...</option>' + 
-                currentClasses.map(cls => `<option value="${cls.id}">${cls.name}</option>`).join('');
-        }
-
-        async function loadClassAnalytics() {
-            const classId = document.getElementById('analyticsClass').value;
-            if (!classId) {
-                document.getElementById('analyticsContent').innerHTML = '<p style="color: #6c757d; text-align: center; padding: 50px;">Select a class to view detailed analytics</p>';
-                return;
-            }
-            
-            try {
-                const response = await fetch(`/api/teacher/class/${classId}/analytics`);
-                const data = await response.json();
-                
-                if (data) {
-                    renderAnalytics(data);
-                }
-            } catch (error) {
-                console.error('Error loading analytics:', error);
-                document.getElementById('analyticsContent').innerHTML = '<p style="color: #dc3545; text-align: center; padding: 50px;">Error loading analytics</p>';
-            }
-        }
-
-        function renderAnalytics(analytics) {
-            const content = `
-                <div class="stats-grid">
-                    <div class="stat-card">
-                        <div class="stat-number">${analytics.totalStudents}</div>
-                        <div class="stat-label">Total Students</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-number">${analytics.totalConversations}</div>
-                        <div class="stat-label">Total Conversations</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-number">${analytics.activeStudents}</div>
-                        <div class="stat-label">Active Students</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-number">${analytics.recentActivity}</div>
-                        <div class="stat-label">This Week</div>
-                    </div>
-                </div>
-                
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin-top: 30px;">
-                    <div class="activity-list">
-                        <div class="activity-header">Student Progress</div>
-                        ${analytics.students.map(student => `
-                            <div class="activity-item">
-                                <div class="activity-info">
-                                    <div class="activity-student">${student.name}</div>
-                                    <div class="activity-prompt">${student.conversationCount} conversations</div>
-                                </div>
-                                <div class="activity-time">${formatDate(conv.timestamp)}</div>
-                            </div>
-                        `).join('')}
-                    </div>
-                </div>
-            `;
-            
-            document.getElementById('analyticsContent').innerHTML = content;
-        }
-
         function formatDate(dateString) {
             const date = new Date(dateString);
-            const now = new Date();
-            const diffTime = Math.abs(now - date);
-            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-            
-            if (diffDays === 1) return 'Today';
-            if (diffDays === 2) return 'Yesterday';
-            if (diffDays <= 7) return `${diffDays} days ago`;
-            
             return date.toLocaleDateString();
         }
 
@@ -902,416 +716,4 @@
         });
     </script>
 </body>
-</html>">${formatDate(student.lastActivity)}</div>
-                            </div>
-                        `).join('')}
-                    </div>
-                    
-                    <div class="activity-list">
-                        <div class="activity-header">Recent Conversations</div>
-                        ${analytics.recentConversations.map(conv => `
-                            <div class="activity-item">
-                                <div class="activity-info">
-                                    <div class="activity-student">${conv.studentName}</div>
-                                    <div class="activity-prompt">${conv.promptTitle}</div>
-                                </div>
-                                <div class="activity-time<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Productive Professor - Teacher Dashboard</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #8B4513 0%, #D2691E 100%);
-            min-height: 100vh;
-            padding: 20px;
-        }
-
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            background: white;
-            border-radius: 20px;
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
-            overflow: hidden;
-        }
-
-        .header {
-            background: linear-gradient(45deg, #8B4513 0%, #D2691E 100%);
-            color: white;
-            padding: 25px;
-            text-align: center;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 20px;
-        }
-
-        .owl-logo {
-            width: 50px;
-            height: 50px;
-            opacity: 0.9;
-            filter: brightness(0) invert(1);
-        }
-
-        .header-content h1 {
-            font-size: 2.2em;
-            margin-bottom: 5px;
-            font-weight: 600;
-        }
-
-        .header-content p {
-            opacity: 0.9;
-            font-size: 1.1em;
-        }
-
-        .nav-tabs {
-            display: flex;
-            background: #f8f9fa;
-            border-bottom: 1px solid #dee2e6;
-        }
-
-        .nav-tab {
-            padding: 15px 25px;
-            background: none;
-            border: none;
-            cursor: pointer;
-            font-size: 16px;
-            font-weight: 500;
-            color: #6c757d;
-            transition: all 0.3s ease;
-            border-bottom: 3px solid transparent;
-        }
-
-        .nav-tab.active {
-            color: #8B4513;
-            border-bottom-color: #8B4513;
-            background: white;
-        }
-
-        .nav-tab:hover {
-            background: #e9ecef;
-        }
-
-        .tab-content {
-            padding: 30px;
-            min-height: 500px;
-        }
-
-        .tab-pane {
-            display: none;
-        }
-
-        .tab-pane.active {
-            display: block;
-        }
-
-        /* Login/Register Forms */
-        .auth-container {
-            max-width: 400px;
-            margin: 50px auto;
-            padding: 30px;
-            background: white;
-            border-radius: 15px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
-        }
-
-        .auth-form {
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
-        }
-
-        .form-group {
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-        }
-
-        .form-group label {
-            font-weight: 600;
-            color: #343a40;
-        }
-
-        .form-group input {
-            padding: 12px;
-            border: 2px solid #dee2e6;
-            border-radius: 8px;
-            font-size: 16px;
-            transition: border-color 0.3s ease;
-        }
-
-        .form-group input:focus {
-            outline: none;
-            border-color: #8B4513;
-        }
-
-        .btn {
-            padding: 12px 20px;
-            background: #8B4513;
-            color: white;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: 600;
-            font-size: 16px;
-            transition: background 0.3s ease;
-        }
-
-        .btn:hover {
-            background: #A0522D;
-        }
-
-        .btn-secondary {
-            background: #6c757d;
-        }
-
-        .btn-secondary:hover {
-            background: #5a6268;
-        }
-
-        .link-btn {
-            background: none;
-            color: #8B4513;
-            text-decoration: underline;
-            padding: 5px;
-        }
-
-        /* Dashboard Sections */
-        .dashboard-section {
-            margin-bottom: 30px;
-        }
-
-        .section-header {
-            display: flex;
-            justify-content: between;
-            align-items: center;
-            margin-bottom: 20px;
-        }
-
-        .section-title {
-            font-size: 1.5em;
-            color: #343a40;
-            margin-bottom: 15px;
-        }
-
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 20px;
-            margin-bottom: 30px;
-        }
-
-        .stat-card {
-            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-            padding: 25px;
-            border-radius: 12px;
-            text-align: center;
-            border-left: 4px solid #8B4513;
-        }
-
-        .stat-number {
-            font-size: 2.5em;
-            font-weight: bold;
-            color: #8B4513;
-            margin-bottom: 5px;
-        }
-
-        .stat-label {
-            color: #6c757d;
-            font-weight: 500;
-        }
-
-        .class-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-            gap: 20px;
-        }
-
-        .class-card {
-            background: white;
-            border: 2px solid #dee2e6;
-            border-radius: 12px;
-            padding: 20px;
-            transition: all 0.3s ease;
-        }
-
-        .class-card:hover {
-            border-color: #8B4513;
-            transform: translateY(-2px);
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
-        }
-
-        .class-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 15px;
-        }
-
-        .class-name {
-            font-size: 1.3em;
-            font-weight: 600;
-            color: #343a40;
-        }
-
-        .subject-badge {
-            background: #8B4513;
-            color: white;
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-size: 0.9em;
-        }
-
-        .join-code {
-            background: #f8f9fa;
-            border: 2px dashed #8B4513;
-            padding: 15px;
-            border-radius: 8px;
-            text-align: center;
-            margin: 15px 0;
-        }
-
-        .join-code-label {
-            color: #6c757d;
-            font-size: 0.9em;
-            margin-bottom: 5px;
-        }
-
-        .join-code-value {
-            font-size: 1.5em;
-            font-weight: bold;
-            color: #8B4513;
-            letter-spacing: 2px;
-        }
-
-        .class-stats {
-            display: flex;
-            justify-content: space-between;
-            margin-top: 15px;
-            padding-top: 15px;
-            border-top: 1px solid #dee2e6;
-        }
-
-        .class-stat {
-            text-align: center;
-        }
-
-        .class-stat-number {
-            font-size: 1.5em;
-            font-weight: bold;
-            color: #8B4513;
-        }
-
-        .class-stat-label {
-            color: #6c757d;
-            font-size: 0.9em;
-        }
-
-        .create-class-form {
-            background: #f8f9fa;
-            padding: 25px;
-            border-radius: 12px;
-            margin-bottom: 30px;
-        }
-
-        .form-row {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 20px;
-        }
-
-        .activity-list {
-            background: white;
-            border: 1px solid #dee2e6;
-            border-radius: 12px;
-            overflow: hidden;
-        }
-
-        .activity-header {
-            background: #f8f9fa;
-            padding: 15px 20px;
-            border-bottom: 1px solid #dee2e6;
-            font-weight: 600;
-        }
-
-        .activity-item {
-            padding: 15px 20px;
-            border-bottom: 1px solid #f8f9fa;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .activity-item:last-child {
-            border-bottom: none;
-        }
-
-        .activity-info {
-            flex: 1;
-        }
-
-        .activity-student {
-            font-weight: 600;
-            color: #343a40;
-        }
-
-        .activity-prompt {
-            color: #6c757d;
-            font-size: 0.9em;
-        }
-
-        .activity-time {
-            color: #8B4513;
-            font-size: 0.9em;
-            font-weight: 500;
-        }
-
-        .error-message {
-            background: #f8d7da;
-            color: #721c24;
-            padding: 10px 15px;
-            border-radius: 8px;
-            margin: 10px 0;
-        }
-
-        .success-message {
-            background: #d4edda;
-            color: #155724;
-            padding: 10px 15px;
-            border-radius: 8px;
-            margin: 10px 0;
-        }
-
-        .hidden {
-            display: none !important;
-        }
-
-        @media (max-width: 768px) {
-            .form-row {
-                grid-template-columns: 1fr;
-            }
-            
-            .stats-grid {
-                grid-template-columns: 1fr 1fr;
-            }
-            
-            .class-grid {
-                grid-template-columns: 1fr;
-            }
-        }
-    </style>
-</head>
-<body>
-    <!-- Authentication Container -->
-    <div id="authContainer" class="container">
-        <div class="header">
-            <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC
+</html>
