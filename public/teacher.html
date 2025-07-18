@@ -318,19 +318,71 @@
             display: none !important;
         }
 
-        @media (max-width: 768px) {
-            .form-row {
-                grid-template-columns: 1fr;
-            }
-            
-            .stats-grid {
-                grid-template-columns: 1fr 1fr;
-            }
-            
-            .class-grid {
-                grid-template-columns: 1fr;
-            }
-        }
+       @media (max-width: 768px) {
+    .header {
+        flex-direction: column;
+        gap: 15px;
+        text-align: center;
+    }
+    
+    .header-left {
+        order: 1;
+    }
+    
+    .header-right {
+        order: 2;
+        margin-left: 0;
+        justify-content: center;
+    }
+    
+    .owl-logo {
+        width: 40px;
+        height: 40px;
+    }
+    
+    .nav-tabs {
+        flex-wrap: wrap;
+    }
+    
+    .nav-tab {
+        flex: 1;
+        min-width: 100px;
+        padding: 12px 15px;
+        font-size: 14px;
+    }
+    
+    .form-row {
+        grid-template-columns: 1fr;
+    }
+    
+    .stats-grid {
+        grid-template-columns: 1fr 1fr;
+        gap: 15px;
+    }
+    
+    .class-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .container {
+        margin: 10px;
+        border-radius: 15px;
+    }
+    
+    .tab-content {
+        padding: 20px 15px;
+    }
+    
+    .auth-container {
+        margin: 20px auto;
+        padding: 20px;
+    }
+
+    .footer {
+        padding: 15px;
+        font-size: 12px;
+    }
+}
     </style>
 </head>
 <body>
