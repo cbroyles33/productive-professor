@@ -1,4 +1,4 @@
-// server.js - Minimal Working Version
+// server.js - Enhanced Productive Professor (Minimal Version)
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
@@ -13,10 +13,10 @@ app.use(express.json());
 app.use(express.static('public'));
 
 // Simple in-memory storage
+const conversations = new Map();
 const teachers = new Map();
 const classes = new Map();
 const students = new Map();
-const conversations = new Map();
 
 const SYSTEM_PROMPT = `You are an intellectual thinking partner designed to accelerate student learning through collaborative challenge. Your role is to deepen and strengthen student reasoning by pushing them to develop more sophisticated arguments while providing genuine encouragement and recognition.
 
@@ -103,7 +103,7 @@ app.post('/api/teacher/register', (req, res) => {
             id: teacherId,
             name,
             email,
-            password,
+            password, // In production, hash this!
             school: school || '',
             createdAt: new Date().toISOString(),
             classes: []
@@ -204,8 +204,8 @@ app.get('/api/teacher/:teacherId/classes', (req, res) => {
             const classData = classes.get(classId);
             return {
                 ...classData,
-                studentCount: classData.students.length,
-                recentActivity: classData.conversations.length
+                studentCount: classData ? classData.students.length : 0,
+                recentActivity: classData ? classData.conversations.length : 0
             };
         });
 
@@ -358,17 +358,18 @@ app.get('/api/health', (req, res) => {
     res.json({ status: 'healthy' });
 });
 
-// Serve different pages
+// Serve the main chat interface
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+// Serve teacher dashboard
 app.get('/teacher', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'teacher.html'));
 });
 
-app.get('/student/:code?', (req, res) => {
+// Serve student dashboard
+app.get('/student', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'student.html'));
-});
-
-app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
 app.listen(PORT, () => {
