@@ -16,8 +16,7 @@
             background: linear-gradient(135deg, #8B4513 0%, #D2691E 100%);
             min-height: 100vh;
             display: flex;
-            align-items: center;
-            justify-content: center;
+            flex-direction: column;
             padding: 20px;
         }
 
@@ -32,14 +31,13 @@
             flex-direction: column;
             overflow: hidden;
             backdrop-filter: blur(10px);
+            margin: 0 auto;
         }
 
         .header {
             background: linear-gradient(45deg, #8B4513 0%, #D2691E 100%);
             color: white;
-            padding: 25px;
-            text-align: center;
-            position: relative;
+            padding: 20px 25px;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -77,7 +75,8 @@
         }
 
         .join-form {
-            display: flex;
+            display: grid;
+            grid-template-columns: 1fr 1fr auto;
             gap: 15px;
             align-items: end;
             max-width: 600px;
@@ -85,7 +84,6 @@
         }
 
         .form-group {
-            flex: 1;
             display: flex;
             flex-direction: column;
             gap: 8px;
@@ -102,6 +100,7 @@
             border-radius: 8px;
             font-size: 16px;
             transition: border-color 0.3s ease;
+            width: 100%;
         }
 
         .form-group input:focus {
@@ -119,6 +118,7 @@
             font-weight: 600;
             transition: background 0.3s ease;
             min-height: 48px;
+            white-space: nowrap;
         }
 
         .join-btn:hover {
@@ -133,6 +133,8 @@
             justify-content: space-between;
             align-items: center;
             border-bottom: 1px solid #e9ecef;
+            flex-wrap: wrap;
+            gap: 10px;
         }
 
         .class-details h3 {
@@ -163,6 +165,8 @@
             background: #f8f9fa;
             padding: 20px;
             border-bottom: 1px solid #e9ecef;
+            max-height: 200px;
+            overflow-y: auto;
         }
 
         .prompts-header {
@@ -356,18 +360,49 @@
             text-align: center;
         }
 
+        .footer {
+            background: #343a40;
+            color: #ffffff;
+            text-align: center;
+            padding: 20px;
+            font-size: 14px;
+            margin-top: auto;
+        }
+
+        .footer a {
+            color: #D2691E;
+            text-decoration: none;
+        }
+
+        .footer a:hover {
+            text-decoration: underline;
+        }
+
         .hidden {
             display: none !important;
         }
 
         @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+
             .container {
                 height: 90vh;
-                margin: 10px;
+                margin: 10px auto;
             }
             
+            .header {
+                padding: 15px 20px;
+            }
+
             .header h1 {
                 font-size: 1.8em;
+            }
+
+            .owl-logo {
+                width: 45px;
+                height: 45px;
             }
             
             .message {
@@ -375,12 +410,45 @@
             }
 
             .join-form {
-                flex-direction: column;
+                grid-template-columns: 1fr;
                 gap: 15px;
+                max-width: 350px;
+            }
+
+            .join-btn {
+                justify-self: stretch;
+            }
+
+            .prompts-section {
+                max-height: 180px;
             }
 
             .prompts-grid {
                 grid-template-columns: 1fr;
+            }
+
+            .prompts-header h3 {
+                font-size: 1.1em;
+            }
+
+            .class-info {
+                flex-direction: column;
+                text-align: center;
+                gap: 10px;
+            }
+
+            .input-group {
+                flex-direction: column;
+                gap: 10px;
+            }
+
+            .input-group button {
+                min-height: 50px;
+            }
+
+            .footer {
+                padding: 15px;
+                font-size: 12px;
             }
         }
     </style>
@@ -453,6 +521,11 @@
         </div>
     </div>
 
+    <div class="footer">
+        <p>&copy; 2025 <a href="https://www.b-degree.com" target="_blank">B Degree Creative and Communications LLC</a>. All rights reserved.</p>
+        <p>Productive Professor - AI Learning Technology</p>
+    </div>
+
     <script>
         // Generate unique session ID
         const sessionId = 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
@@ -460,11 +533,28 @@
         let currentClass = null;
         let currentPromptTitle = null;
         
-        // Check if joining with URL parameter
+        // Check for saved student session on page load
         window.addEventListener('load', () => {
+            const savedStudent = localStorage.getItem('currentStudent');
+            const savedClass = localStorage.getItem('currentClass');
+            
+            if (savedStudent && savedClass) {
+                try {
+                    currentStudent = JSON.parse(savedStudent);
+                    currentClass = JSON.parse(savedClass);
+                    showClassInfo();
+                    loadPrompts();
+                    updateWelcomeMessage();
+                } catch (error) {
+                    localStorage.removeItem('currentStudent');
+                    localStorage.removeItem('currentClass');
+                }
+            }
+            
+            // Check for URL join code
             const urlParams = new URLSearchParams(window.location.search);
             const codeFromUrl = urlParams.get('code');
-            if (codeFromUrl) {
+            if (codeFromUrl && !savedStudent) {
                 document.getElementById('joinCode').value = codeFromUrl;
             }
         });
@@ -491,6 +581,10 @@
                     currentStudent = { id: data.studentId, name: studentName };
                     currentClass = data.class;
                     
+                    // Save to localStorage
+                    localStorage.setItem('currentStudent', JSON.stringify(currentStudent));
+                    localStorage.setItem('currentClass', JSON.stringify(currentClass));
+                    
                     // Update UI
                     showClassInfo();
                     await loadPrompts();
@@ -507,6 +601,10 @@
             currentStudent = null;
             currentClass = null;
             currentPromptTitle = null;
+            
+            // Clear localStorage
+            localStorage.removeItem('currentStudent');
+            localStorage.removeItem('currentClass');
             
             // Reset UI
             document.getElementById('joinSection').classList.remove('hidden');
@@ -552,6 +650,8 @@
                 }
             } catch (error) {
                 console.error('Error loading prompts:', error);
+                // Show generic prompts if API fails
+                renderGenericPrompts();
             }
         }
 
@@ -563,6 +663,28 @@
                     <div class="prompt-description">${prompt.prompt}</div>
                 </div>
             `).join('');
+        }
+
+        function renderGenericPrompts() {
+            const genericPrompts = [
+                {
+                    title: "Critical Analysis",
+                    prompt: "Present any argument or position you're developing, and I'll help you strengthen it through rigorous questioning and analysis."
+                },
+                {
+                    title: "Problem Solving", 
+                    prompt: "Describe a problem you're trying to solve, and I'll challenge you to examine it from multiple angles and develop stronger solutions."
+                },
+                {
+                    title: "Evidence Evaluation",
+                    prompt: "Share evidence you're using to support an argument, and I'll push you to examine its relevance, credibility, and strength."
+                },
+                {
+                    title: "Counterargument Preparation",
+                    prompt: "State your position on a topic, and I'll help you anticipate and address the strongest opposing viewpoints."
+                }
+            ];
+            renderPrompts(genericPrompts);
         }
 
         function selectPrompt(title, prompt) {
