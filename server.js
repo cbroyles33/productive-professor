@@ -154,13 +154,22 @@ app.post('/api/teacher/login', (req, res) => {
 });
 
 // Create class
-app.post('/api/teacher/create-class', (req, res) => {
+app.post('/api/teacher/create-class', async (req, res) => {
     try {
         const { teacherId, className, subject, description } = req.body;
-
-        if (!teachers.has(teacherId)) {
+        
+        console.log('Create class request:', { teacherId, className, subject, description });
+        
+        const teachers = await readDB(TEACHERS_DB);
+        console.log('Teachers in database:', Object.keys(teachers));
+        console.log('Looking for teacher:', teacherId);
+        
+        if (!teachers[teacherId]) {
+            console.log('Teacher not found!');
             return res.status(404).json({ error: 'Teacher not found' });
         }
+        
+        // rest of the function...
 
         const classId = 'class_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
         const joinCode = generateCode();
